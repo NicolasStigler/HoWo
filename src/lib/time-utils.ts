@@ -6,6 +6,11 @@ import {
   startOfMonth,
   endOfMonth,
   subMonths,
+  addMonths,
+  getDate,
+  getYear,
+  getMonth,
+  setDate,
 } from 'date-fns';
 
 export const calculateDuration = (timeIn: string, timeOut: string): { hours: number; minutes: number } => {
@@ -38,46 +43,67 @@ export type HalfMonth = {
 };
 
 export const getHalfMonthPeriods = (date: Date): [HalfMonth, HalfMonth] => {
-  const monthStart = startOfMonth(date);
-  const monthEnd = endOfMonth(date);
-  const midMonth = new Date(date.getFullYear(), date.getMonth(), 15);
-
+  const year = getYear(date);
+  const month = getMonth(date);
+  const prevMonthDate = subMonths(date, 1);
+  const nextMonthDate = addMonths(date, 1);
+  // 1st Half-Month: 27 to 12
+  const firstHalfStart = new Date(getYear(prevMonthDate), getMonth(prevMonthDate), 27);
+  const firstHalfEnd = new Date(year, month, 12);
+  // 2nd Half-Month: 13 to 26
+  const secondHalfStart = new Date(year, month, 13);
+  const secondHalfEnd = new Date(year, month, 26);
   const firstHalf: HalfMonth = {
-    label: `${format(monthStart, 'MMMM')} (1-15)`,
-    value: `${format(monthStart, 'yyyy-MM')}-1`,
-    startDate: monthStart,
-    endDate: midMonth,
+    label: `${format(firstHalfStart, 'MMM d')} - ${format(firstHalfEnd, 'MMM d')}`,
+    value: `${format(firstHalfStart, 'yyyy-MM-dd')}`,
+    startDate: firstHalfStart,
+    endDate: firstHalfEnd,
   };
-
   const secondHalf: HalfMonth = {
-    label: `${format(monthStart, 'MMMM')} (16-${format(monthEnd, 'd')})`,
-    value: `${format(monthStart, 'yyyy-MM')}-2`,
-    startDate: new Date(date.getFullYear(), date.getMonth(), 16),
-    endDate: monthEnd,
+    label: `${format(secondHalfStart, 'MMM d')} - ${format(secondHalfEnd, 'MMM d')}`,
+    value: `${format(secondHalfStart, 'yyyy-MM-dd')}`,
+    startDate: secondHalfStart,
+    endDate: secondHalfEnd,
   };
-
   return [firstHalf, secondHalf];
 };
 
 export const generatePeriods = (count = 6): HalfMonth[] => {
   const periods: HalfMonth[] = [];
   let currentDate = new Date();
-  for (let i = 0; i < count; i++) {
-    const [firstHalf, secondHalf] = getHalfMonthPeriods(currentDate);
-    periods.push(secondHalf, firstHalf);
+  const dayOfMonth = getDate(currentDate);
+  if (dayOfMonth < 13) {
     currentDate = subMonths(currentDate, 1);
   }
-  return periods.reverse();
+  for (let i = 0; i < count; i++) {
+    const [firstHalf, secondHalf] = getHalfMonthPeriods(currentDate);
+    if (dayOfMonth >= 13 && dayOfMonth <= 26 && i === 0) {
+      periods.push(secondHalf);
+    } else if (dayOfMonth >= 27 && i === 0) {
+      const [nextMonthFirstHalf] = getHalfMonthPeriods(addMonths(currentDate, 1));
+      periods.push(nextMonthFirstHalf);
+      periods.push(secondHalf);
+    } else {
+      periods.push(secondHalf, firstHalf);
+    }
+    currentDate = subMonths(currentDate, 1);
+  }
+  const [lastFirstHalf, lastSecondHalf] = getHalfMonthPeriods(currentDate);
+  periods.push(lastSecondHalf, lastFirstHalf);
+  const uniquePeriods = Array.from(new Map(periods.map(p => [p.value, p])).values());
+  uniquePeriods.sort((a,b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+  return uniquePeriods.slice(0, count * 2);
 };
 
 export const filterEntriesByPeriod = (entries: TimeEntry[], period: HalfMonth): TimeEntry[] => {
-    if (!period) return [];
-    return entries
-        .filter(entry => {
-            const entryDate = new Date(entry.date);
-            return entryDate >= period.startDate && entryDate <= period.endDate;
-        })
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  if (!period) return [];
+  return entries.filter(entry => {
+    const entryDate = new Date(entry.date);
+    const entryDay = new Date(entryDate.getFullYear(), entryDate.getMonth(), entryDate.getDate());
+    const startDay = new Date(period.startDate.getFullYear(), period.startDate.getMonth(), period.startDate.getDate());
+    const endDay = new Date(period.endDate.getFullYear(), period.endDate.getMonth(), period.endDate.getDate());
+    return entryDay >= startDay && entryDay <= endDay;
+  }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 };
 
 export const calculateTotalMinutes = (entries: TimeEntry[]): number => {
@@ -88,8 +114,18 @@ export const calculateTotalMinutes = (entries: TimeEntry[]): number => {
 };
 
 export const getCurrentPeriod = (): HalfMonth => {
-    const now = new Date();
-    const dayOfMonth = now.getDate();
-    const [firstHalf, secondHalf] = getHalfMonthPeriods(now);
-    return dayOfMonth <= 15 ? firstHalf : secondHalf;
+  const now = new Date();
+  const dayOfMonth = getDate(now);
+  if (dayOfMonth >= 13 && dayOfMonth <= 26) {
+    const [, secondHalf] = getHalfMonthPeriods(now);
+    return secondHalf;
+  } else {
+    if (dayOfMonth >= 27) {
+      const [firstHalfOfNextMonth] = getHalfMonthPeriods(addMonths(now, 1));
+      return firstHalfOfNextMonth;
+    } else {
+      const [firstHalf] = getHalfMonthPeriods(now);
+      return firstHalf;
+    }
+  }
 }
