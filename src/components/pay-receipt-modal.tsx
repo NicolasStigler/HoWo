@@ -9,10 +9,9 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
-import { downloadPdf } from '@/lib/pdf-utils';
 import { format } from 'date-fns';
 import { TimeEntry } from '@/types';
-import { formatDuration } from '@/lib/time-utils';
+import { formatTotalDuration, calculateDuration } from '@/lib/time-utils';
 
 interface PayReceiptModalProps {
   isOpen: boolean;
@@ -41,7 +40,40 @@ export default function PayReceiptModal({ isOpen, onClose, totalMinutes, periodL
 
   const handleDownload = () => {
     const fileName = `Horas-${periodLabel.replace(/ /g, '_')}`;
-    downloadPdf('pay-receipt-content', fileName);
+
+    const headers = ['Fecha', 'Modalidad', 'Entrada', 'Salida', 'Duracion'];
+    const sortedEntries = [...entries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    const csvContent = [
+      headers.join(','),
+      ...sortedEntries.map(entry => {
+        const duration = calculateDuration(entry.timeIn, entry.timeOut);
+        const durationMinutes = duration.hours * 60 + duration.minutes;
+        const durationString = formatTotalDuration(durationMinutes).replace(':',':');
+        
+        const modalidad = entry.location === 'Office' ? 'Tienda' : 'Remoto';
+        
+        return [
+          format(new Date(entry.date), 'dd/MM/yy'),
+          modalidad,
+          entry.timeIn,
+          entry.timeOut,
+          durationString,
+        ].join(',');
+      })
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.href) {
+      URL.revokeObjectURL(link.href);
+    }
+    const url = URL.createObjectURL(blob);
+    link.href = url;
+    link.setAttribute('download', `${fileName}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   const receiptMonth = periodLabel.split(' ')[0];
@@ -49,11 +81,11 @@ export default function PayReceiptModal({ isOpen, onClose, totalMinutes, periodL
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-white text-black sm:max-w-md p-0 border-none rounded-lg">
-        <div id="pay-receipt-content" className="p-6 font-mono text-sm bg-white text-black">
-          <DialogHeader className="text-center border-b-2 border-dashed border-gray-400 pb-4 mb-4">
+      <DialogContent className="bg-background text-foreground sm:max-w-md p-0 border-none rounded-lg">
+        <div id="pay-receipt-content" className="p-6 text-sm">
+          <DialogHeader className="text-center border-b-2 border-dashed border-border pb-4 mb-4">
             <DialogTitle className="text-lg font-bold">HoWo</DialogTitle>
-            <DialogDescription className="text-xs text-black">Resumen - {receiptMonth} {receiptPart}</DialogDescription>
+            <DialogDescription className="text-xs">Resumen - {receiptMonth} {receiptPart}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-2 mb-4">
@@ -83,38 +115,18 @@ export default function PayReceiptModal({ isOpen, onClose, totalMinutes, periodL
             </div>
           </div>
 
-          <div className="border-t-2 border-dashed border-gray-400 pt-4 mt-4 text-right">
+          <div className="border-t-2 border-dashed border-border pt-4 mt-4 text-right">
              <p className="text-lg font-bold">TOTAL: S/.{grandTotal.toFixed(2)}</p>
           </div>
-                    
-          <div className="border-t-2 border-dashed border-gray-400 pt-4 mt-6">
-            <h3 className="text-center font-bold mb-2 uppercase">Detalle de Horas</h3>
-            <div className='text-xs'>
-              <div className="grid grid-cols-4 gap-2 font-bold border-b border-gray-300 pb-1 mb-1">
-                <div>Fecha</div>
-                <div>Modalidad</div>
-                <div className='text-center'>Horario</div>
-                <div className='text-right'>Duración</div>
-              </div>
-              {entries.map(entry => (
-                <div key={entry.id} className="grid grid-cols-4 gap-2 py-1 border-b border-gray-200">
-                  <div>{format(new Date(entry.date), 'dd/MM/yy')}</div>
-                  <div>{entry.location}</div>
-                  <div className='text-center'>{entry.timeIn}-{entry.timeOut}</div>
-                  <div className='text-right'>{formatDuration({hours: Math.floor((new Date(`${entry.date.slice(0,10)}T${entry.timeOut}`).getTime() - new Date(`${entry.date.slice(0,10)}T${entry.timeIn}`).getTime()) / 3600000), minutes: Math.floor(((new Date(`${entry.date.slice(0,10)}T${entry.timeOut}`).getTime() - new Date(`${entry.date.slice(0,10)}T${entry.timeIn}`).getTime()) % 3600000) / 60000) })}</div>
-                </div>
-              ))}
-            </div>
-          </div>
           
-          <div className="text-center mt-6 text-xs text-gray-500">
+          <div className="text-center mt-6 text-xs text-muted-foreground">
             <p>Gracias por su trabajo!</p>
             <p>{format(new Date(), "dd/MM/yyyy HH:mm")}</p>
           </div>
         </div>
 
-        <DialogFooter className="p-6 pt-0 bg-white rounded-b-lg">
-          <Button onClick={handleDownload} className="w-full bg-blue-500 text-white hover:bg-blue-600">
+        <DialogFooter className="p-6 pt-0 rounded-b-lg">
+          <Button onClick={handleDownload} className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
             <Download className="mr-2 h-4 w-4" />
             Descargar desglosado
           </Button>
