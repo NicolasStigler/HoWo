@@ -51,11 +51,10 @@ export default function PayReceiptModal({ isOpen, onClose, totalMinutes, periodL
         const durationMinutes = duration.hours * 60 + duration.minutes;
         const durationString = formatTotalDuration(durationMinutes).replace(':',':');
         
-        const modalidad = entry.location === 'Office' ? 'Tienda' : 'Remoto';
         
         return [
           format(new Date(entry.date), 'dd/MM/yy'),
-          modalidad,
+          entry.location,
           entry.timeIn,
           entry.timeOut,
           durationString,
