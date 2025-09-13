@@ -1,3 +1,4 @@
+// DEPRECATED - NO LONGER BEING USED IN FAVOR OF EXPORTING CSVs
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
