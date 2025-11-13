@@ -68,31 +68,26 @@ export const getHalfMonthPeriods = (date: Date): [HalfMonth, HalfMonth] => {
   return [firstHalf, secondHalf];
 };
 
-export const generatePeriods = (count = 6): HalfMonth[] => {
+export const generatePeriods = (count = 12): HalfMonth[] => {
   const periods: HalfMonth[] = [];
   let currentDate = new Date();
   const dayOfMonth = getDate(currentDate);
-  if (dayOfMonth < 13) {
+  if (dayOfMonth >= 13 && dayOfMonth <= 26) {
     currentDate = subMonths(currentDate, 1);
+  } else {
+    if (dayOfMonth < 13) {
+      currentDate = subMonths(currentDate, 1);
+    }
   }
   for (let i = 0; i < count; i++) {
     const [firstHalf, secondHalf] = getHalfMonthPeriods(currentDate);
-    if (dayOfMonth >= 13 && dayOfMonth <= 26 && i === 0) {
-      periods.push(secondHalf);
-    } else if (dayOfMonth >= 27 && i === 0) {
-      const [nextMonthFirstHalf] = getHalfMonthPeriods(addMonths(currentDate, 1));
-      periods.push(nextMonthFirstHalf);
-      periods.push(secondHalf);
-    } else {
-      periods.push(secondHalf, firstHalf);
-    }
+    periods.push(secondHalf);
+    periods.push(firstHalf);
     currentDate = subMonths(currentDate, 1);
   }
-  const [lastFirstHalf, lastSecondHalf] = getHalfMonthPeriods(currentDate);
-  periods.push(lastSecondHalf, lastFirstHalf);
   const uniquePeriods = Array.from(new Map(periods.map(p => [p.value, p])).values());
-  uniquePeriods.sort((a,b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-  return uniquePeriods.slice(0, count * 2);
+  uniquePeriods.sort((a,b) => b.startDate.getTime() - a.startDate.getTime());
+  return uniquePeriods;
 };
 
 export const filterEntriesByPeriod = (entries: TimeEntry[], period: HalfMonth): TimeEntry[] => {
@@ -120,12 +115,13 @@ export const getCurrentPeriod = (): HalfMonth => {
     const [, secondHalf] = getHalfMonthPeriods(now);
     return secondHalf;
   } else {
-    if (dayOfMonth >= 27) {
-      const [firstHalfOfNextMonth] = getHalfMonthPeriods(addMonths(now, 1));
-      return firstHalfOfNextMonth;
+    let targetDate = now;
+    if (dayOfMonth < 13) {
+      targetDate = now;
     } else {
-      const [firstHalf] = getHalfMonthPeriods(now);
-      return firstHalf;
+      targetDate = addMonths(now, 1);
     }
+    const [firstHalf] = getHalfMonthPeriods(targetDate);
+    return firstHalf;
   }
 }
