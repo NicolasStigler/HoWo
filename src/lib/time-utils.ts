@@ -73,7 +73,6 @@ export const generatePeriods = (count = 12): HalfMonth[] => {
   let currentDate = new Date();
   const dayOfMonth = getDate(currentDate);
   if (dayOfMonth >= 13 && dayOfMonth <= 26) {
-    currentDate = subMonths(currentDate, 1);
   } else {
     if (dayOfMonth < 13) {
       currentDate = subMonths(currentDate, 1);
