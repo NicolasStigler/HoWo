@@ -49,10 +49,10 @@ export const getHalfMonthPeriods = (date: Date): [HalfMonth, HalfMonth] => {
   const nextMonthDate = addMonths(date, 1);
   // 1st Half-Month: 27 to 12
   const firstHalfStart = new Date(getYear(prevMonthDate), getMonth(prevMonthDate), 27);
-  const firstHalfEnd = new Date(year, month, 12);
+  const firstHalfEnd = new Date(year, month, 10);
   // 2nd Half-Month: 13 to 26
-  const secondHalfStart = new Date(year, month, 13);
-  const secondHalfEnd = new Date(year, month, 26);
+  const secondHalfStart = new Date(year, month, 11);
+  const secondHalfEnd = new Date(year, month, 25);
   const firstHalf: HalfMonth = {
     label: `${format(firstHalfStart, 'MMM d')} - ${format(firstHalfEnd, 'MMM d')}`,
     value: `${format(firstHalfStart, 'yyyy-MM-dd')}`,
@@ -72,9 +72,9 @@ export const generatePeriods = (count = 12): HalfMonth[] => {
   const periods: HalfMonth[] = [];
   let currentDate = new Date();
   const dayOfMonth = getDate(currentDate);
-  if (dayOfMonth >= 13 && dayOfMonth <= 26) {
+  if (dayOfMonth >= 11 && dayOfMonth <= 25) {
   } else {
-    if (dayOfMonth < 13) {
+    if (dayOfMonth < 11) {
       currentDate = subMonths(currentDate, 1);
     }
   }
@@ -110,12 +110,12 @@ export const calculateTotalMinutes = (entries: TimeEntry[]): number => {
 export const getCurrentPeriod = (): HalfMonth => {
   const now = new Date();
   const dayOfMonth = getDate(now);
-  if (dayOfMonth >= 13 && dayOfMonth <= 26) {
+  if (dayOfMonth >= 11 && dayOfMonth <= 25) {
     const [, secondHalf] = getHalfMonthPeriods(now);
     return secondHalf;
   } else {
     let targetDate = now;
-    if (dayOfMonth < 13) {
+    if (dayOfMonth < 11) {
       targetDate = now;
     } else {
       targetDate = addMonths(now, 1);
