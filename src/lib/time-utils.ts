@@ -47,10 +47,10 @@ export const getHalfMonthPeriods = (date: Date): [HalfMonth, HalfMonth] => {
   const month = getMonth(date);
   const prevMonthDate = subMonths(date, 1);
   const nextMonthDate = addMonths(date, 1);
-  // 1st Half-Month: 27 to 12
-  const firstHalfStart = new Date(getYear(prevMonthDate), getMonth(prevMonthDate), 27);
+  // 1st Half-Month: 26 to 10
+  const firstHalfStart = new Date(getYear(prevMonthDate), getMonth(prevMonthDate), 26);
   const firstHalfEnd = new Date(year, month, 10);
-  // 2nd Half-Month: 13 to 26
+  // 2nd Half-Month: 13 to 25
   const secondHalfStart = new Date(year, month, 11);
   const secondHalfEnd = new Date(year, month, 25);
   const firstHalf: HalfMonth = {
